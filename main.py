@@ -1,5 +1,4 @@
 class Vehicle:
-    """Base class representing a vehicle."""
     def __init__(self, license_plate, owner_name, vehicle_type):
         self.license_plate = license_plate
         self.owner_name = owner_name
@@ -11,7 +10,6 @@ class Vehicle:
 
 
 class ParkingRecord(Vehicle):
-    """Derived class adding the parking spot number."""
     def __init__(self, license_plate, owner_name, vehicle_type, spot_number):
         super().__init__(license_plate, owner_name, vehicle_type)
         self.spot_number = spot_number
@@ -21,51 +19,42 @@ class ParkingRecord(Vehicle):
 
 
 class ParkingManager:
-    """Manages a list of parking records with text file persistence."""
     DB_FILE = "Parking.txt"
 
     def __init__(self):
         self.records = []
-        self.load_data()          # Load existing records on startup
+        self.load_data()
 
     def load_data(self):
-        """Load records from Parking.txt if the file exists."""
         try:
             with open(self.DB_FILE, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
                         continue
-                    # Each line: license_plate|owner_name|vehicle_type|spot_number
                     parts = line.split("|")
                     if len(parts) == 4:
                         plate, owner, v_type, spot_str = parts
                         try:
                             spot = int(spot_str)
-                            record = ParkingRecord(plate, owner, v_type, spot)
-                            self.records.append(record)
+                            self.records.append(ParkingRecord(plate, owner, v_type, spot))
                         except ValueError:
-                            print(f"Skipping invalid spot number in line: {line}")
+                            print(f"Skipping invalid spot number: {line}")
                     else:
                         print(f"Skipping malformed line: {line}")
             print(f"Loaded {len(self.records)} records from {self.DB_FILE}.")
         except FileNotFoundError:
             print(f"No existing data file found ({self.DB_FILE}). Starting fresh.")
         except Exception as e:
-            print(f"Error reading file: {e}. Starting with empty list.")
-            self.records = []
+            print(f"Error reading file: {e}. Starting empty.")
 
     def save_data(self):
-        """Save all records to Parking.txt as plain text."""
         with open(self.DB_FILE, "w", encoding="utf-8") as f:
             for rec in self.records:
-                # Write: license_plate|owner_name|vehicle_type|spot_number
-                line = f"{rec.license_plate}|{rec.owner_name}|{rec.vehicle_type}|{rec.spot_number}\n"
-                f.write(line)
+                f.write(f"{rec.license_plate}|{rec.owner_name}|{rec.vehicle_type}|{rec.spot_number}\n")
         print(f"Data saved to {self.DB_FILE}.")
 
     def input_records(self):
-        """Input a list of parking records from the user and save."""
         n = int(input("Enter number of parking records: "))
         for i in range(n):
             print(f"\n--- Record {i+1} ---")
@@ -73,13 +62,11 @@ class ParkingManager:
             owner = input("Owner name: ")
             v_type = input("Vehicle type: ")
             spot = int(input("Spot number: "))
-            record = ParkingRecord(plate, owner, v_type, spot)
-            self.records.append(record)
-        self.save_data()          # Persist after adding
+            self.records.append(ParkingRecord(plate, owner, v_type, spot))
+        self.save_data()
         print("Records added successfully.")
 
     def show_records(self):
-        """Display all parking records."""
         if not self.records:
             print("No records in the system.")
             return
@@ -87,14 +74,37 @@ class ParkingManager:
         for idx, rec in enumerate(self.records, 1):
             print(f"{idx}. {rec}")
 
+    def update_record(self, license_plate, field, new_value):
+        for rec in self.records:
+            if rec.license_plate == license_plate:
+                if field == "license_plate":
+                    rec.license_plate = new_value
+                elif field == "owner_name":
+                    rec.owner_name = new_value
+                elif field == "vehicle_type":
+                    rec.vehicle_type = new_value
+                elif field == "spot_number":
+                    try:
+                        rec.spot_number = int(new_value)
+                    except ValueError:
+                        print("Spot number must be an integer. Update cancelled.")
+                        return
+                else:
+                    print("Invalid field name.")
+                    return
+                self.save_data()
+                print(f"{field} updated successfully for plate {license_plate}.")
+                return
+        print(f"No record found with plate {license_plate}.")
+
 
 def main():
-    """Main menu for the Smart Parking Management System."""
     manager = ParkingManager()
     while True:
         print("\n===== SMART PARKING MANAGEMENT =====")
         print("1. Input parking records")
         print("2. Show all records")
+        print("3. Update a record")
         print("0. Exit")
         choice = input("Your choice: ")
 
@@ -102,6 +112,29 @@ def main():
             manager.input_records()
         elif choice == "2":
             manager.show_records()
+        elif choice == "3":
+            plate = input("Enter license plate of the record to update: ")
+            print("\nWhat would you like to change?")
+            print("1. License plate")
+            print("2. Owner name")
+            print("3. Vehicle type")
+            print("4. Spot number")
+            sub_choice = input("Your choice (1-4): ")
+
+            field_map = {
+                "1": "license_plate",
+                "2": "owner_name",
+                "3": "vehicle_type",
+                "4": "spot_number"
+            }
+            if sub_choice not in field_map:
+                print("Invalid choice.")
+                continue
+
+            field = field_map[sub_choice]
+            new_value = input(f"Enter new {field.replace('_', ' ')}: ")
+            manager.update_record(plate, field, new_value)
+
         elif choice == "0":
             print("Exiting system. Goodbye!")
             break
